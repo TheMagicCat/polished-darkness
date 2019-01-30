@@ -1,46 +1,47 @@
-import React, { useState } from 'react';
+import React, { useEffect, useReducer, createContext } from 'react';
 
-const thunkMiddleware = (getState) => (dispatch) => (action) => {
-  if(typeof action === 'function') {
-    dispatch(action(dispatch, getState));
-  } else {
-    dispatch(action);
-  };
-}
+const Store = createContext(null);
+const Dispatch = createContext(null);
 
-function useRedux(reducer, preloadedState, middlewares = []) {
-  const [store, setState] = useState(preloadedState);
-  const [subscriptions, addSubscription] = useState([]);
-
-  const dispatch = (action) => {
-    setState(reducer(state, action));
-  }
-
-  const getState = () => store;
-
-  const enhancerApi = () => ({
-    dispatch,
-    subscribe: (fn) => addSubscription((prev) => [...prev, fn]),
-    getState,
-  });
-
-  const chain = middlewares.map(middleware => middleware(getState));
-  const enhancedDispatch = compose(...chain)(dispatch);
-
-  return [store, enhancedDispatch];
-}
-
-// combineReducers is a non-hook problem! Just decide how to slice everything up.
-function combineReducers(reducers) {
-  return reducers.entries.reduce((finalReducer, [key, reducer]) => (state, action) => ({
-    ...finalReducer(state, action),
-    [key]: reducer(state.key, action),
-  }), (state, action) => {});
-}
-
+const initialState = {};
 function rootReducer (state, action) {
-  return {
-    oranges: orangesReducer(state, action),
-    apples: applesReducer(state, action),
-  };
+  return state;
 }
+
+function App(props) {
+  const [store, dispatch] = useReducer(rootReducer, initialState);
+
+  return (
+    // This is how you connect() a component!
+    <Dispatch.Provider value={dispatch} >
+      <Store.Provider value={store}>
+        <main>
+
+        </main>
+      </Store.Provider>
+    </Dispatch.Provider>
+
+  )
+}
+
+
+// ------------
+// This probably won't work as expected...
+// const thunkMiddleware = (getState) => (dispatch) => (action) => {
+//   if (typeof action === 'function') {
+//     action(dispatch, getState);
+//   } else {
+//     dispatch(action);
+//   };
+// }
+
+// function useRedux(reducer, preloadedState, middlewares) {
+//   const [store, dispatch] = useReducer(reducer, preloadedState);
+
+//   const getState = () => store;
+
+//   const chain = middlewares.map(middleware => middleware(getState));
+//   const enhancedDispatch = compose(...chain)(dispatch);
+
+//   return [store, enhancedDispatch];
+// }
