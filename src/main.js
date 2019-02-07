@@ -22,22 +22,23 @@ function apiEffect(dispatch, param) {
   return cancellation;
 }
 
-function keyedObjectReducer(key, reducer) {
-  return (state, action) => ({ ...state, [key]: reducer(state, action) });
+function compose(...middlewares) {
+  return middlewares.reduce((f, g) => (...args) => f(g(...args)));
+} 
+
+function logMiddleware ([state, next]) {
+  const logger = (action) => {
+    console.log(state, action);
+    next(action);
+  }
+
+  return [state, logger];
 }
 
-function keyedMapReducer(key, reducer) {
-  return (state, action) =>  new Map(state).set(key, reducer(state, action));
-}
-
-const runReducer = (action) => (state, reducer) => reducer(state, action);
-
-function combineReducers(...reducers) {
-  return (state, action) => reducers.reduce(runReducer(action), state);
-}
+middleware = composeMiddleware(logMiddleware, thunkMiddleware);
 
 function App(props) {
-  const [store, dispatch] = useReducer(rootReducer, initialState);
+  const [store, dispatch] = middleware(useReducer(rootReducer, initialState));
 
   return (
     // This is how you Provide to connect()'ed components!
@@ -72,36 +73,53 @@ ReactDOM.render(
 );
 
 
-// function reduxApi(dispatch, param) {
-//   const controller = new AbortController();
-//   const signal = controller.signal;
+/*
+// ----- Code Graveyard -----
 
-//   fetch(`https://some.api.com/${param}`, { signal })
-//     .then(res => dispatch(handleResponse(res)))
-//     .catch(error => dispatch(handleError(error)));
+// As far as I can tell, it's a BAD IDEA to try and implement any kind of async
+function thunkMiddleware ([state, next]) {
+  const thunkDispatch = (action) => {
+    if(typeof action === 'function') {
+      action(state, next);
+    } else {
+      next(action);
+    }
+  }
 
-//   dispatch({
-//     type: 'Api Request',
-//     relevantData: param,
-//     cancellation: () => { signal.abort(); },
-//   });
-// }
+  return [state, thunkDispatch];
+}
 
-// async function reduxApiAwait(dispatch, param) {
-//   const controller = new AbortController();
-//   const signal = controller.signal;
-//   try {
-//     const req = fetch(`https://some.api.com/${param}`, { signal });
+function reduxApi(dispatch, param) {
+  const controller = new AbortController();
+  const signal = controller.signal;
 
-//     dispatch({
-//       type: 'Api Request',
-//       relevantData: param,
-//       cancellation: () => { signal.abort(); },
-//     });
+  fetch(`https://some.api.com/${param}`, { signal })
+    .then(res => dispatch(handleResponse(res)))
+    .catch(error => dispatch(handleError(error)));
 
-//     const res = await req;
-//     dispatch(handleResponse(res));
-//   } catch (error) {
-//     dispatch(handleError(error));
-//   }
-// }
+  dispatch({
+    type: 'Api Request',
+    relevantData: param,
+    cancellation: () => { signal.abort(); },
+  });
+}
+
+async function reduxApiAwait(dispatch, param) {
+  const controller = new AbortController();
+  const signal = controller.signal;
+  try {
+    const req = fetch(`https://some.api.com/${param}`, { signal });
+
+    dispatch({
+      type: 'Api Request',
+      relevantData: param,
+      cancellation: () => { signal.abort(); },
+    });
+
+    const res = await req;
+    dispatch(handleResponse(res));
+  } catch (error) {
+    dispatch(handleError(error));
+  }
+}
+*/
