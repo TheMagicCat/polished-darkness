@@ -39,7 +39,11 @@ function logMiddleware ([state, next]) {
 middleware = composeMiddleware(logMiddleware);
 
 function App(props) {
-  // This is a sort-of-similar way to how Redux sets up its ehancers/middleware...
+  /*
+    This is a sort-of-similar way to how Redux sets up its ehancers/middleware...
+     It seems like any state logging ought to happen as a wrapper in the reducer?
+     That way, it'd be easier to compose the dispatch call...
+  */
   const [store, storeDispatch] = useReducer(rootReducer, initialState);
   let dispatch = () => { throw new Error('Cannot dispatch while creating middlewares!'); };
 
