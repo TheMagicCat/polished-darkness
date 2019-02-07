@@ -22,7 +22,11 @@ function apiEffect(dispatch, param) {
   return cancellation;
 }
 
-
+/*
+  Probably would inject some other data here? Or maybe not?
+   It's kind of safer having this just see action, possibly
+   in parallel with other middlewares and the real dispatch.
+*/
 function useMiddleware(middleware, cancellation) {
   const [action, dispatchToMiddleware] = useState();
   
