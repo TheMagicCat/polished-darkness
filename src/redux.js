@@ -6,10 +6,12 @@ export function keyedMapReducer(key, reducer) {
   return (state, action) =>  new Map(state).set(key, reducer(state, action));
 }
 
-function runReducer (action) {
-  return (state, reducer) => reducer(state, action);
+// Just a compose, but impedance matches reducers.
+export function combineReducers(...reducers) {
+  return reducers.reduce((accumulation, reducer) => (state, action) => accumulation(reducer(state, action), action));
 }
 
-export function combineReducers(...reducers) {
-  return (state, action) => reducers.reduce(runReducer(action), state);
-}
+// These are basically equivalent, as long as no reducer modifies the action!
+function compose(...fns) {
+  return fns.reduce((f, g) => (...args) => f(g(...args)));
+} 

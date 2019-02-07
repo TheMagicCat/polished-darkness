@@ -22,34 +22,33 @@ function apiEffect(dispatch, param) {
   return cancellation;
 }
 
-function compose(...middlewares) {
-  return middlewares.reduce((f, g) => (...args) => f(g(...args)));
-} 
 
-// Basically a wrapped dispatch call. CANNOT BE ASYNC!
-function logMiddleware ([state, next]) {
-  const logger = (action) => {
-    console.log(state, action);
-    next(action);
-  }
+function useMiddleware(middleware, cancellation) {
+  const [action, dispatchToMiddleware] = useState();
+  
+  useEffect(() => {
+    middleware(action);
+    return cancellation;
+  }, action);
 
-  return [state, logger];
+  return dispatchToMiddleware;
 }
-
-middleware = composeMiddleware(logMiddleware);
 
 function App(props) {
   /*
-    This is a sort-of-similar way to how Redux sets up its ehancers/middleware...
-     It seems like any state logging ought to happen as a wrapper in the reducer?
-     That way, it'd be easier to compose the dispatch call...
+    I got it! This is crazy. Middleware is now a side effect.
+     This way, your initial dispatch always happens without being
+     messed with. I suppose, if you only had non-mutatey, synchronous
+     things to do, it wouldn't much matter to compose the dispatch.
+
+    But, since we're updating state, we can actually just DO THE THING
+     DEVTOOLS DOES. We can keep a log of the state changes and actions
+     via the useMiddleware Hook and any async stuff in a side-effect.
+
+    Pretty neat!
   */
-  const [store, storeDispatch] = useReducer(rootReducer, initialState);
-  let dispatch = () => { throw new Error('Cannot dispatch while creating middlewares!'); };
 
-  const [enhancedStore, enhancedDispatch] = middleware([store, dispatch]);
-
-  dispatch = compose(storeDispatch, enhancedDispatch);
+  const [store, dispatch] = useReducer(rootReducer, initialState);
 
   return (
     // This is how you Provide to connect()'ed components!
