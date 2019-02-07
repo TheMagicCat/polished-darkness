@@ -26,6 +26,7 @@ function compose(...middlewares) {
   return middlewares.reduce((f, g) => (...args) => f(g(...args)));
 } 
 
+// Basically a wrapped dispatch call. CANNOT BE ASYNC!
 function logMiddleware ([state, next]) {
   const logger = (action) => {
     console.log(state, action);
@@ -38,8 +39,13 @@ function logMiddleware ([state, next]) {
 middleware = composeMiddleware(logMiddleware);
 
 function App(props) {
-  const [store, dispatch] = middleware(useReducer(rootReducer, initialState));
-  const middlewareApi = [store, () => { throw new Error('Cannot dispatch while creating middleware!')}];
+  // This is a sort-of-similar way to how Redux sets up its ehancers/middleware...
+  const [store, storeDispatch] = useReducer(rootReducer, initialState);
+  let dispatch = () => { throw new Error('Cannot dispatch while creating middlewares!'); };
+
+  const [enhancedStore, enhancedDispatch] = middleware([store, dispatch]);
+
+  dispatch = compose(storeDispatch, enhancedDispatch);
 
   return (
     // This is how you Provide to connect()'ed components!
