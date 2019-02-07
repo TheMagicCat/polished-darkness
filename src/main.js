@@ -35,10 +35,11 @@ function logMiddleware ([state, next]) {
   return [state, logger];
 }
 
-middleware = composeMiddleware(logMiddleware, thunkMiddleware);
+middleware = composeMiddleware(logMiddleware);
 
 function App(props) {
   const [store, dispatch] = middleware(useReducer(rootReducer, initialState));
+  const middlewareApi = [store, () => { throw new Error('Cannot dispatch while creating middleware!')}];
 
   return (
     // This is how you Provide to connect()'ed components!
@@ -72,54 +73,3 @@ ReactDOM.render(
   document.querySelector('body')
 );
 
-
-/*
-// ----- Code Graveyard -----
-
-// As far as I can tell, it's a BAD IDEA to try and implement any kind of async
-function thunkMiddleware ([state, next]) {
-  const thunkDispatch = (action) => {
-    if(typeof action === 'function') {
-      action(state, next);
-    } else {
-      next(action);
-    }
-  }
-
-  return [state, thunkDispatch];
-}
-
-function reduxApi(dispatch, param) {
-  const controller = new AbortController();
-  const signal = controller.signal;
-
-  fetch(`https://some.api.com/${param}`, { signal })
-    .then(res => dispatch(handleResponse(res)))
-    .catch(error => dispatch(handleError(error)));
-
-  dispatch({
-    type: 'Api Request',
-    relevantData: param,
-    cancellation: () => { signal.abort(); },
-  });
-}
-
-async function reduxApiAwait(dispatch, param) {
-  const controller = new AbortController();
-  const signal = controller.signal;
-  try {
-    const req = fetch(`https://some.api.com/${param}`, { signal });
-
-    dispatch({
-      type: 'Api Request',
-      relevantData: param,
-      cancellation: () => { signal.abort(); },
-    });
-
-    const res = await req;
-    dispatch(handleResponse(res));
-  } catch (error) {
-    dispatch(handleError(error));
-  }
-}
-*/
