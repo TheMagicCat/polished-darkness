@@ -23,52 +23,23 @@ function apiEffect(dispatch, param) {
 }
 
 /*
-  Upon further research...
-
-  DevTools is a "higher-order" reducer. That is,
-   it intercepts actions and controls operation of another 
-   reducer, and controls the output state with its
-   own state and actions.
-  
-  Reducers aren't limited to the usual action-mapping used
-   in almost all redux examples. You could in theory, use any
-   accumulated state, and any function, as long as it produces
-   that state.
-  
-  With Effects, we can do super cool things like sync external
-   states in a safe, obvious, and deterministic way. It's wild!
+  DevTools needs to completely replace the reducer.
+   I guess this means we can't easily chain them as an enhancer...
+   Would need a special useRedux to manage all that.
 */
-/*
-  Some more thoughts here. I have options:
-    1. Just merge a DevTools reducer with a regular reducer?
-      - Bad! Because of conflicts, and shoving state where it doesn't belong.
-    2. Use a separate reducer, proxying calls to another
-      - Not sure yet.
-      - This way it's easy to proxy calls.
-    3. Use the React Hooks initializers to mess with state.
-      - Not sure yet.
-      - Using the init driver to reset state is interesting, but I think
-         I'd need to keep track of action -> state mapping manually...
-*/
-function devToolsReducer (state, action) {
-  return state;
-}
-
-const proxyReducer = (reducer, dispatchToDevTools) => {
-  const result = reducer(state, action);
-
-  dispatchToDevTools({
-    type: 'Commit',
-    state,
-    action,
-  });
-
-  return result;
-};
-
-function App(props) {
+function useDevTools([store, dispatch]) {
+  // Junk, ignore!
   const [devToolsState, dispatchToDevTools] = useReducer(devToolsReducer, {});
   const reducer = proxyReducer(rootReducer, dispatchToDevTools);
+
+  const dispatch = (action) => {
+    dispatchToDevTools()
+  }
+
+  return [state, dispatchToDevTools];
+}
+
+function App(props) {
   const [store, dispatch] = useReducer(reducer, initialState);
 
   return (
