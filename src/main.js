@@ -23,36 +23,53 @@ function apiEffect(dispatch, param) {
 }
 
 /*
-  Probably would inject some other data here? Or maybe not?
-   It's kind of safer having this just see action, possibly
-   in parallel with other middlewares and the real dispatch.
-*/
-function useMiddleware(middleware, cancellation) {
-  const [action, dispatchToMiddleware] = useState();
-  
-  useEffect(() => {
-    middleware(action);
-    return cancellation;
-  }, action);
+  Upon further research...
 
-  return dispatchToMiddleware;
+  DevTools is a "higher-order" reducer. That is,
+   it intercepts actions and controls operation of another 
+   reducer, and controls the output state with its
+   own state and actions.
+  
+  Reducers aren't limited to the usual action-mapping used
+   in almost all redux examples. You could in theory, use any
+   accumulated state, and any function, as long as it produces
+   that state.
+  
+  With Effects, we can do super cool things like sync external
+   states in a safe, obvious, and deterministic way. It's wild!
+*/
+/*
+  Some more thoughts here. I have options:
+    1. Just merge a DevTools reducer with a regular reducer?
+      - Bad! Because of conflicts, and shoving state where it doesn't belong.
+    2. Use a separate reducer, proxying calls to another
+      - Not sure yet.
+      - This way it's easy to proxy calls.
+    3. Use the React Hooks initializers to mess with state.
+      - Not sure yet.
+      - Using the init driver to reset state is interesting, but I think
+         I'd need to keep track of action -> state mapping manually...
+*/
+function devToolsReducer (state, action) {
+  return state;
 }
 
+const proxyReducer = (reducer, dispatchToDevTools) => {
+  const result = reducer(state, action);
+
+  dispatchToDevTools({
+    type: 'Commit',
+    state,
+    action,
+  });
+
+  return result;
+};
+
 function App(props) {
-  /*
-    I got it! This is crazy. Middleware is now a side effect.
-     This way, your initial dispatch always happens without being
-     messed with. I suppose, if you only had non-mutatey, synchronous
-     things to do, it wouldn't much matter to compose the dispatch.
-
-    But, since we're updating state, we can actually just DO THE THING
-     DEVTOOLS DOES. We can keep a log of the state changes and actions
-     via the useMiddleware Hook and any async stuff in a side-effect.
-
-    Pretty neat!
-  */
-
-  const [store, dispatch] = useReducer(rootReducer, initialState);
+  const [devToolsState, dispatchToDevTools] = useReducer(devToolsReducer, {});
+  const reducer = proxyReducer(rootReducer, dispatchToDevTools);
+  const [store, dispatch] = useReducer(reducer, initialState);
 
   return (
     // This is how you Provide to connect()'ed components!
