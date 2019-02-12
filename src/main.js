@@ -1,42 +1,64 @@
 import React, { Fragment, useEffect, useReducer, createContext, useContext } from 'react';
 import ReactDOM from 'react-dom';
 
-const Store = createContext(null);
-const Dispatch = createContext(null);
+const fibonacci = (state) => ({
+  loading: false,
+  n: state.m,
+  m: state.n + state.m,
+});
 
-const initialState = {};
-function rootReducer(state, action) {
-  return state;
+const loadState = (state) => ({
+  ...state,
+  loading: true,
+});
+
+function useLazyFib() {
+  const [state, update] = setState(() => ({
+    loading: false,
+    n: 1,
+    m: 1,
+   }));
+  
+  useEffect(() => {
+    let timeoutId = null;
+    if(exec) {
+      timeoutId = setTimeout(setState(fibonacci), 3000);
+    }
+    return () => {
+      clearTimeout(timeoutId);
+    }
+  }, [state.loading]);
+
+  const next = () => { update(loadState); }
+
+  return [state.m, next];
 }
 
-function apiEffect(dispatch, param) {
-  const controller = new AbortController();
-  const signal = controller.signal;
+function useCancellableUpdate() {
+  const [state, dispatch] = useState();
+  // const [cancelSignal, cancel] = useState(false);
+  const [actionQueue, update] = useState([]);
 
-  const cancellation = () => { signal.abort(); }
-
-  fetch(`https://some.api.com/${param}`, { signal })
-    .then(res => dispatch(handleResponse(res)))
-    .catch(error => dispatch(handleError(error)));
-
-  return cancellation;
-}
-
-/*
-  DevTools needs to completely replace the reducer.
-   I guess this means we can't easily chain them as an enhancer...
-   Would need a special useRedux to manage all that.
-*/
-function useDevTools([store, dispatch]) {
-  // Junk, ignore!
-  const [devToolsState, dispatchToDevTools] = useReducer(devToolsReducer, {});
-  const reducer = proxyReducer(rootReducer, dispatchToDevTools);
-
-  const dispatch = (action) => {
-    dispatchToDevTools()
+  const thunkProxy = (action) => {
+    if (typeof action === 'function') {
+      update(action);
+    } else {
+      dispatch(action);
+    }
   }
 
-  return [state, dispatchToDevTools];
+  useEffect(() => {
+    
+  }, [actionQueue]);
+
+  return [state, thunkProxy];
+}
+
+function useThunk(fn) {
+
+
+
+  return []
 }
 
 function App(props) {
