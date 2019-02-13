@@ -1,64 +1,64 @@
 import React, { Fragment, useEffect, useReducer, createContext, useContext } from 'react';
 import ReactDOM from 'react-dom';
+import mitt from 'mitt';
 
-const fibonacci = (state) => ({
-  loading: false,
-  n: state.m,
-  m: state.n + state.m,
+const fibonacci = ({n, m}) => ({
+  n: m,
+  m: n + m,
 });
 
-const loadState = (state) => ({
-  ...state,
-  loading: true,
-});
-
-function useLazyFib() {
-  const [state, update] = setState(() => ({
-    loading: false,
-    n: 1,
-    m: 1,
-   }));
-  
-  useEffect(() => {
-    let timeoutId = null;
-    if(exec) {
-      timeoutId = setTimeout(setState(fibonacci), 3000);
-    }
+function emitterAdapter(emitter){
+  return (event, handler) => {
+    emitter.on(event, handler);
     return () => {
-      clearTimeout(timeoutId);
-    }
-  }, [state.loading]);
-
-  const next = () => { update(loadState); }
-
-  return [state.m, next];
-}
-
-function useCancellableUpdate() {
-  const [state, dispatch] = useState();
-  // const [cancelSignal, cancel] = useState(false);
-  const [actionQueue, update] = useState([]);
-
-  const thunkProxy = (action) => {
-    if (typeof action === 'function') {
-      update(action);
-    } else {
-      dispatch(action);
+      emitter.off(event, handler);
     }
   }
-
-  useEffect(() => {
-    
-  }, [actionQueue]);
-
-  return [state, thunkProxy];
 }
 
-function useThunk(fn) {
+function useLazyFibonacci(emitter, token) {
+  // const emitter = useRef(mitt());
+  const [state, setState] = useState(() => ({ n: 1,  m: 1 }));
+  
+  // const genFib = useRef(() => { setState(fibonacci); }).current;
+  const genFib = () => { setState(fibonacci); }
 
+  useEffect(() => {
+    // const unsubscribe = emitter.subscribe(token, genFib);
+    // return unsubscribe;
+    emitter.on(token, genFib);
+    
+    return () => {
+      emitter.off(token, genFib);
+    }
+  }, [emitter, token]);
 
+  // const next = () => {
+  //   emitter.emit('calc');
+  // }
 
-  return []
+  return state;//, next;
+}
+
+function useSubscription() {
+  const [subscriptions, updateSubscribers] = useState([]);
+  const activate = useRef(() => { console.log('Not ready yet!'); });
+
+  useEffect(() => {
+    activate.current = () => {
+      for (let subscriber in subscriptions) {
+        subscriber();
+      }
+    }
+  }, [subscriptions]);
+
+  const subscribe = (callback) => {
+    updateSubscribers((state) => [ ...state, callback ]);
+    return () => {
+
+    }
+  }
+  return subscribe, activate.current;
 }
 
 function App(props) {
