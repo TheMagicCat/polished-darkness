@@ -1,6 +1,6 @@
 import React, { Fragment, useEffect, useReducer, createContext, useContext } from 'react';
 import ReactDOM from 'react-dom';
-import mitt from 'mitt';
+import EventEmitter from 'events';
 
 const fibonacci = ({n, m}) => ({
   n: m,
@@ -8,8 +8,10 @@ const fibonacci = ({n, m}) => ({
 });
 
 function emitterAdapter(emitter){
+  // Subscribe
   return (event, handler) => {
     emitter.on(event, handler);
+    // Return Unsubscribe
     return () => {
       emitter.off(event, handler);
     }
@@ -17,48 +19,13 @@ function emitterAdapter(emitter){
 }
 
 function useLazyFibonacci(emitter, token) {
-  // const emitter = useRef(mitt());
   const [state, setState] = useState(() => ({ n: 1,  m: 1 }));
   
-  // const genFib = useRef(() => { setState(fibonacci); }).current;
   const genFib = () => { setState(fibonacci); }
 
-  useEffect(() => {
-    // const unsubscribe = emitter.subscribe(token, genFib);
-    // return unsubscribe;
-    emitter.on(token, genFib);
-    
-    return () => {
-      emitter.off(token, genFib);
-    }
-  }, [emitter, token]);
+  useEffect(() => emitter.subscribe(token, genFib), [emitter, token]);
 
-  // const next = () => {
-  //   emitter.emit('calc');
-  // }
-
-  return state;//, next;
-}
-
-function useSubscription() {
-  const [subscriptions, updateSubscribers] = useState([]);
-  const activate = useRef(() => { console.log('Not ready yet!'); });
-
-  useEffect(() => {
-    activate.current = () => {
-      for (let subscriber in subscriptions) {
-        subscriber();
-      }
-    }
-  }, [subscriptions]);
-
-  const subscribe = (callback) => {
-    updateSubscribers((state) => [ ...state, callback ]);
-    return () => {
-
-    }
-  }
-  return subscribe, activate.current;
+  return state;
 }
 
 function App(props) {
